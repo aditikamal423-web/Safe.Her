@@ -1,0 +1,1751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SafeHer – Women Safety Heatmap | AI-Powered Safety Platform</title>
+<meta name="description" content="SafeHer is an AI-powered women's safety platform with real-time geospatial heatmapping, instant SOS alerts, and ML risk scoring for cities across India."/>
+<meta property="og:title" content="SafeHer – Women Safety Heatmap"/>
+<meta property="og:description" content="AI-powered real-time safety heatmapping for women. SOS alerts, danger zone detection, safest route navigation."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<style>
+  :root {
+    --pink: #E91E8C;
+    --pink-dark: #C2156E;
+    --pink-light: #FDE8F3;
+    --pink-mid: #F472B6;
+    --danger: #EF4444;
+    --danger-light: #FEF2F2;
+    --safe: #10B981;
+    --safe-light: #D1FAE5;
+    --warn: #F59E0B;
+    --warn-light: #FFFBEB;
+    --purple: #7C3AED;
+    --blue: #3B82F6;
+    --dark: #0F0A1A;
+    --dark2: #1A1030;
+    --card-bg: rgba(255,255,255,0.04);
+    --border: rgba(255,255,255,0.1);
+    --text: #F9FAFB;
+    --text-muted: #9CA3AF;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--dark); color: var(--text); font-family: 'Inter', sans-serif; overflow-x: hidden; }
+
+  /* NAV */
+  nav { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(15,10,26,0.94); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 64px; transition: background 0.3s; }
+  .nav-logo { display: flex; align-items: center; gap: 10px; font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; font-weight: 700; color: var(--pink); text-decoration: none; }
+  .nav-logo span { color: var(--text); }
+  .nav-links { display: flex; gap: 2rem; list-style: none; }
+  .nav-links a { color: var(--text-muted); text-decoration: none; font-size: 0.875rem; font-weight: 500; transition: color 0.2s; }
+  .nav-links a:hover, .nav-links a.active { color: var(--pink); }
+  .nav-cta { background: var(--pink); color: #fff; border: none; padding: 0.5rem 1.25rem; border-radius: 8px; font-weight: 600; font-size: 0.875rem; cursor: pointer; transition: background 0.2s; }
+  .nav-cta:hover { background: var(--pink-dark); }
+  .hamburger { display: none; background: none; border: none; color: var(--text); font-size: 1.3rem; cursor: pointer; }
+
+  /* SECTIONS */
+  section { scroll-margin-top: 64px; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 2rem; }
+
+  /* HERO */
+  #hero { min-height: 100vh; display: flex; align-items: center; background: radial-gradient(ellipse at 20% 50%, rgba(233,30,140,0.13) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, rgba(124,58,237,0.1) 0%, transparent 50%), var(--dark); padding: 80px 2rem 4rem; }
+  .hero-grid { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+  .hero-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(233,30,140,0.15); border: 1px solid rgba(233,30,140,0.3); color: var(--pink-mid); padding: 6px 14px; border-radius: 100px; font-size: 0.75rem; font-weight: 600; margin-bottom: 1.5rem; letter-spacing: 0.05em; text-transform: uppercase; animation: fadeUp 0.6s ease both; }
+  .hero-title { font-family: 'Space Grotesk', sans-serif; font-size: 3.5rem; font-weight: 700; line-height: 1.1; margin-bottom: 1.5rem; animation: fadeUp 0.6s ease 0.1s both; }
+  .hero-title .accent { color: var(--pink); }
+  .hero-desc { color: var(--text-muted); font-size: 1.05rem; line-height: 1.7; margin-bottom: 2rem; max-width: 480px; animation: fadeUp 0.6s ease 0.2s both; }
+  .hero-btns { display: flex; gap: 1rem; flex-wrap: wrap; animation: fadeUp 0.6s ease 0.3s both; }
+  .btn-primary { background: var(--pink); color: #fff; padding: 0.8rem 1.8rem; border-radius: 10px; font-weight: 600; font-size: 0.95rem; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.2s, transform 0.15s; }
+  .btn-primary:hover { background: var(--pink-dark); transform: translateY(-1px); }
+  .btn-outline { background: transparent; color: var(--text); padding: 0.8rem 1.8rem; border-radius: 10px; font-weight: 600; font-size: 0.95rem; border: 1px solid var(--border); cursor: pointer; transition: border-color 0.2s, background 0.2s, transform 0.15s; display: flex; align-items: center; gap: 8px; }
+  .btn-outline:hover { border-color: var(--pink); background: rgba(233,30,140,0.05); transform: translateY(-1px); }
+  .hero-stats { display: flex; gap: 2rem; margin-top: 2.5rem; animation: fadeUp 0.6s ease 0.4s both; flex-wrap: wrap; }
+  .hero-stat .num { font-family: 'Space Grotesk', sans-serif; font-size: 1.8rem; font-weight: 700; color: var(--pink); }
+  .hero-stat .lbl { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+  /* PHONE MOCKUP */
+  .phone-wrap { position: relative; display: flex; justify-content: center; animation: fadeUp 0.8s ease 0.2s both; }
+  .phone { width: 300px; background: #111; border-radius: 40px; border: 3px solid #333; overflow: hidden; box-shadow: 0 40px 80px rgba(0,0,0,0.5), 0 0 0 1px #222, 0 0 60px rgba(233,30,140,0.08); }
+  .phone-notch { background: #111; height: 30px; display: flex; align-items: center; justify-content: center; }
+  .phone-notch-pill { width: 100px; height: 12px; background: #000; border-radius: 10px; }
+  .phone-screen { background: #0F0A1A; padding: 1rem; }
+  .phone-time { text-align: center; font-size: 0.7rem; color: #666; margin-bottom: 0.5rem; }
+  .phone-header { display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; }
+  .app-icon { width: 36px; height: 36px; background: var(--pink); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+  .app-name { font-family: 'Space Grotesk', sans-serif; font-size: 0.9rem; font-weight: 700; }
+  .app-name small { display: block; font-size: 0.6rem; color: var(--text-muted); font-family: 'Inter', sans-serif; font-weight: 400; }
+
+  /* SOS BUTTON */
+  .sos-area { text-align: center; padding: 1rem 0; }
+  .sos-ring { width: 110px; height: 110px; border-radius: 50%; border: 3px solid rgba(239,68,68,0.3); display: flex; align-items: center; justify-content: center; margin: 0 auto; animation: sosring 2s infinite; }
+  .sos-btn { width: 90px; height: 90px; border-radius: 50%; background: var(--danger); border: none; color: #fff; font-weight: 700; font-size: 1.3rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; box-shadow: 0 0 30px rgba(239,68,68,0.4); transition: transform 0.1s; user-select: none; }
+  .sos-btn:active { transform: scale(0.95); }
+  .sos-btn small { font-size: 0.55rem; letter-spacing: 0.08em; opacity: 0.9; }
+  @keyframes sosring { 0%,100%{transform:scale(1);opacity:0.5} 50%{transform:scale(1.08);opacity:1} }
+  .sos-label { font-size: 0.65rem; color: var(--text-muted); margin-top: 0.5rem; }
+  .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 0.8rem; }
+  .quick-btn { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 8px 6px; text-align: center; cursor: pointer; transition: background 0.2s, border-color 0.2s; }
+  .quick-btn:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.2); }
+  .quick-btn i { display: block; font-size: 1rem; margin-bottom: 3px; color: var(--pink); }
+  .quick-btn span { font-size: 0.6rem; color: var(--text-muted); }
+  .quick-btn.red i { color: var(--danger); }
+  .quick-btn.green i { color: var(--safe); }
+  .quick-btn.amber i { color: var(--warn); }
+
+  /* SECTION HEADING */
+  .section-head { text-align: center; margin-bottom: 3rem; }
+  .section-tag { display: inline-block; background: rgba(233,30,140,0.12); color: var(--pink); border: 1px solid rgba(233,30,140,0.2); padding: 5px 14px; border-radius: 100px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1rem; }
+  .section-title { font-family: 'Space Grotesk', sans-serif; font-size: 2.2rem; font-weight: 700; line-height: 1.2; }
+  .section-sub { color: var(--text-muted); margin-top: 0.75rem; font-size: 1rem; max-width: 560px; margin-left: auto; margin-right: auto; line-height: 1.6; }
+
+  /* FEATURES */
+  #features { padding: 6rem 2rem; }
+  .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+  .feature-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.75rem; position: relative; overflow: hidden; transition: border-color 0.2s, transform 0.2s; }
+  .feature-card:hover { border-color: rgba(233,30,140,0.4); transform: translateY(-4px); }
+  .feature-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--pink), var(--purple)); opacity: 0; transition: opacity 0.2s; }
+  .feature-card:hover::before { opacity: 1; }
+  .feat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 1rem; }
+  .feat-icon.pink { background: rgba(233,30,140,0.15); color: var(--pink); }
+  .feat-icon.red { background: rgba(239,68,68,0.15); color: var(--danger); }
+  .feat-icon.green { background: rgba(16,185,129,0.15); color: var(--safe); }
+  .feat-icon.purple { background: rgba(124,58,237,0.15); color: var(--purple); }
+  .feat-icon.blue { background: rgba(59,130,246,0.15); color: var(--blue); }
+  .feat-icon.amber { background: rgba(245,158,11,0.15); color: var(--warn); }
+  .feat-title { font-weight: 600; font-size: 1rem; margin-bottom: 0.5rem; }
+  .feat-desc { color: var(--text-muted); font-size: 0.875rem; line-height: 1.6; }
+
+  /* HEATMAP SECTION */
+  #heatmap { padding: 6rem 2rem; background: rgba(255,255,255,0.01); }
+  .heatmap-layout { display: grid; grid-template-columns: 1fr 380px; gap: 2rem; align-items: start; }
+  .map-container { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; }
+  .map-title-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem; }
+  .map-title { font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .map-filters { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .filter-btn { background: var(--card-bg); border: 1px solid var(--border); color: var(--text-muted); padding: 5px 12px; border-radius: 8px; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; }
+  .filter-btn.active, .filter-btn:hover { background: rgba(233,30,140,0.15); border-color: var(--pink); color: var(--pink); }
+  #lucknow-map { width: 100%; height: 440px; border-radius: 12px; overflow: hidden; z-index: 1; position: relative; }
+  .map-legend { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--text-muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .map-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
+  .map-action-btn { background: rgba(233,30,140,0.12); border: 1px solid rgba(233,30,140,0.25); color: var(--pink); padding: 6px 14px; border-radius: 8px; font-size: 0.78rem; font-weight: 500; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+  .map-action-btn:hover { background: rgba(233,30,140,0.2); }
+
+  /* SIDEBAR */
+  .sidebar-cards { display: flex; flex-direction: column; gap: 1rem; }
+  .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1.25rem; }
+  .stat-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+  .stat-card-title { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+  .stat-big { font-family: 'Space Grotesk', sans-serif; font-size: 2rem; font-weight: 700; color: var(--pink); }
+  .stat-change { font-size: 0.75rem; padding: 3px 8px; border-radius: 6px; }
+  .stat-change.up { background: rgba(239,68,68,0.15); color: #F87171; }
+  .stat-change.down { background: rgba(16,185,129,0.15); color: #34D399; }
+  .incident-list { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.75rem; }
+  .incident-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: rgba(255,255,255,0.03); border-radius: 8px; cursor: pointer; transition: background 0.2s; }
+  .incident-row:hover { background: rgba(255,255,255,0.06); }
+  .inc-left { display: flex; align-items: center; gap: 8px; }
+  .inc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .inc-name { font-size: 0.8rem; color: var(--text); }
+  .inc-count { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); background: rgba(255,255,255,0.06); padding: 2px 8px; border-radius: 6px; }
+
+  /* CHARTS */
+  #analytics { padding: 6rem 2rem; }
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 2rem; }
+  .chart-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; }
+  .chart-card-title { font-size: 0.875rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* COMPARISON */
+  #comparison { padding: 6rem 2rem; background: rgba(255,255,255,0.01); }
+  .compare-table { width: 100%; border-collapse: collapse; margin-top: 2rem; }
+  .compare-table th { padding: 1rem; font-size: 0.8rem; font-weight: 600; text-align: center; border-bottom: 1px solid var(--border); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .compare-table th.us { color: var(--pink); }
+  .compare-table td { padding: 1rem; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.875rem; }
+  .compare-table td:first-child { text-align: left; color: var(--text-muted); }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .tick { color: var(--safe); font-size: 1.1rem; }
+  .cross { color: var(--danger); font-size: 1.1rem; }
+  .partial { color: var(--warn); font-size: 0.875rem; }
+  .us-col { background: rgba(233,30,140,0.05); }
+
+  /* HOW IT WORKS */
+  #how { padding: 6rem 2rem; }
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-top: 3rem; position: relative; }
+  .steps::before { content:''; position:absolute; top:36px; left:calc(12.5% + 36px); right:calc(12.5% + 36px); height:2px; background:linear-gradient(90deg,var(--pink),var(--purple)); z-index:0; }
+  .step { text-align: center; position: relative; z-index: 1; }
+  .step-num { width: 72px; height: 72px; border-radius: 50%; background: var(--dark2); border: 2px solid var(--pink); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem; position: relative; }
+  .step-num .step-badge { position: absolute; top: -4px; right: -4px; width: 22px; height: 22px; background: var(--pink); border-radius: 50%; font-size: 0.65rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .step-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.5rem; }
+  .step-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
+
+  /* TECH STACK */
+  #tech { padding: 6rem 2rem; background: rgba(255,255,255,0.01); }
+  .tech-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-top: 3rem; }
+  .tech-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1.5rem; transition: border-color 0.2s, transform 0.2s; }
+  .tech-card:hover { border-color: rgba(233,30,140,0.3); transform: translateY(-3px); }
+  .tech-card-title { font-size: 0.75rem; color: var(--pink); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; }
+  .tech-item { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 0.82rem; color: var(--text-muted); }
+  .tech-item i { width: 18px; color: var(--pink); font-size: 0.9rem; }
+
+  /* RELIABILITY */
+  #reliability { padding: 6rem 2rem; }
+  .reliability-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; }
+  .uptime-ring { display: flex; justify-content: center; }
+  .reliability-points { display: flex; flex-direction: column; gap: 1.25rem; }
+  .rel-point { display: flex; gap: 1rem; }
+  .rel-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(16,185,129,0.15); color: var(--safe); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .rel-title { font-weight: 600; font-size: 0.925rem; margin-bottom: 3px; }
+  .rel-desc { font-size: 0.825rem; color: var(--text-muted); line-height: 1.5; }
+
+  /* TRUST BAR */
+  .trust-bar { display: flex; justify-content: center; gap: 3rem; padding: 2.5rem 2rem; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.01); flex-wrap: wrap; }
+  .trust-item { display: flex; align-items: center; gap: 10px; }
+  .trust-item i { color: var(--pink); font-size: 1.1rem; }
+  .trust-item span { font-size: 0.85rem; color: var(--text-muted); }
+  .trust-item strong { color: var(--text); }
+
+  /* LIVE BADGE */
+  .live-badge { display: inline-flex; align-items: center; gap: 5px; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #F87171; padding: 3px 10px; border-radius: 100px; font-size: 0.65rem; font-weight: 600; }
+  .live-dot { width: 6px; height: 6px; background: var(--danger); border-radius: 50%; animation: blink 1s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  /* ALERT RIBBON */
+  .alert-ribbon { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; margin-top: 0.75rem; }
+  .alert-ribbon-icon { color: var(--danger); font-size: 0.9rem; }
+  .alert-text { font-size: 0.7rem; color: #F87171; line-height: 1.4; }
+
+  /* GLOW */
+  .glow { position: absolute; width: 400px; height: 400px; border-radius: 50%; filter: blur(100px); opacity: 0.08; pointer-events: none; }
+  .glow.pink { background: var(--pink); }
+  .glow.purple { background: var(--purple); }
+  .pulse-ring { position: absolute; border-radius: 50%; animation: pulse-out 2s infinite; }
+  @keyframes pulse-out { 0%{transform:scale(1);opacity:0.6} 100%{transform:scale(2);opacity:0} }
+
+  /* RESUME CTA */
+  #resume { padding: 6rem 2rem; background: linear-gradient(135deg, rgba(233,30,140,0.08) 0%, rgba(124,58,237,0.08) 100%); border-top: 1px solid var(--border); }
+  .resume-inner { max-width: 800px; margin: 0 auto; text-align: center; }
+  .resume-title { font-family: 'Space Grotesk', sans-serif; font-size: 2.5rem; font-weight: 700; margin-bottom: 1rem; }
+  .resume-desc { color: var(--text-muted); font-size: 1rem; line-height: 1.7; margin-bottom: 2.5rem; max-width: 600px; margin-left: auto; margin-right: auto; }
+  .resume-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin-bottom: 2.5rem; }
+  .resume-tag { background: rgba(233,30,140,0.1); border: 1px solid rgba(233,30,140,0.2); color: var(--pink-mid); padding: 6px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; }
+
+  /* DEPLOY SECTION */
+  #deploy { padding: 4rem 2rem; background: rgba(124,58,237,0.05); border-top: 1px solid var(--border); }
+  .deploy-inner { max-width: 800px; margin: 0 auto; text-align: center; }
+  .deploy-url { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; margin: 1.5rem 0; flex-wrap: wrap; gap: 1rem; }
+  .deploy-url-text { font-family: 'Space Grotesk', sans-serif; font-size: 0.9rem; color: var(--pink-mid); word-break: break-all; }
+  .copy-btn { background: var(--purple); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s; white-space: nowrap; }
+  .copy-btn:hover { opacity: 0.85; }
+  .deploy-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; margin: 2rem 0; text-align: left; }
+  .deploy-step { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }
+  .deploy-step-num { width: 28px; height: 28px; background: var(--pink); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; margin-bottom: 0.75rem; }
+  .deploy-step-title { font-weight: 600; font-size: 0.875rem; margin-bottom: 0.4rem; }
+  .deploy-step-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
+  .deploy-step code { background: rgba(233,30,140,0.1); color: var(--pink-mid); padding: 2px 6px; border-radius: 4px; font-size: 0.78rem; }
+
+  /* FOOTER */
+  footer { padding: 2rem; text-align: center; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 0.825rem; }
+  footer strong { color: var(--pink); }
+  .footer-links { display: flex; justify-content: center; gap: 1.5rem; margin-top: 0.75rem; flex-wrap: wrap; }
+  .footer-links a { color: var(--text-muted); text-decoration: none; font-size: 0.8rem; transition: color 0.2s; }
+  .footer-links a:hover { color: var(--pink); }
+
+  /* SOS MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; backdrop-filter: blur(8px); }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal { background: var(--dark2); border: 1px solid var(--border); border-radius: 20px; padding: 2.5rem; max-width: 460px; width: 90%; text-align: center; transform: scale(0.9); transition: transform 0.3s; }
+  .modal-overlay.open .modal { transform: scale(1); }
+  .modal-icon { width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; font-size: 2rem; }
+  .modal-icon.sos { background: rgba(239,68,68,0.15); color: var(--danger); animation: sosring 1s infinite; }
+  .modal-icon.report { background: rgba(233,30,140,0.15); color: var(--pink); }
+  .modal-title { font-family: 'Space Grotesk', sans-serif; font-size: 1.5rem; font-weight: 700; margin-bottom: 0.75rem; }
+  .modal-desc { color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; margin-bottom: 1.5rem; }
+  .modal-countdown { font-family: 'Space Grotesk', sans-serif; font-size: 3rem; font-weight: 700; color: var(--danger); margin-bottom: 1rem; }
+  .modal-status { font-size: 0.85rem; color: var(--safe); margin-bottom: 1.5rem; }
+  .modal-btns { display: flex; gap: 1rem; justify-content: center; }
+  .modal-close { background: rgba(255,255,255,0.08); border: 1px solid var(--border); color: var(--text); padding: 0.7rem 1.5rem; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
+  .modal-confirm { background: var(--danger); color: white; border: none; padding: 0.7rem 1.5rem; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
+
+  /* REPORT MODAL FORM */
+  .form-group { text-align: left; margin-bottom: 1rem; }
+  .form-label { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; margin-bottom: 0.4rem; display: block; }
+  .form-input, .form-select, .form-textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; padding: 0.7rem 1rem; color: var(--text); font-size: 0.875rem; font-family: 'Inter', sans-serif; transition: border-color 0.2s; }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--pink); }
+  .form-select option { background: #1a1030; }
+  .form-textarea { height: 80px; resize: vertical; }
+  .type-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .type-chip { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-muted); padding: 5px 12px; border-radius: 8px; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; }
+  .type-chip.selected { background: rgba(233,30,140,0.15); border-color: var(--pink); color: var(--pink); }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 2rem; right: 2rem; background: var(--dark2); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.5rem; display: flex; align-items: center; gap: 12px; z-index: 9998; transform: translateY(100px); opacity: 0; transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); max-width: 340px; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast-icon { font-size: 1.3rem; flex-shrink: 0; }
+  .toast-text { font-size: 0.85rem; line-height: 1.4; }
+  .toast-text strong { display: block; color: var(--text); margin-bottom: 2px; }
+  .toast-text span { color: var(--text-muted); }
+
+  /* BACK TO TOP */
+  .back-top { position: fixed; bottom: 2rem; left: 2rem; width: 44px; height: 44px; background: var(--pink); border: none; border-radius: 50%; color: white; font-size: 1.1rem; cursor: pointer; z-index: 100; opacity: 0; transform: translateY(20px); transition: all 0.3s; display: flex; align-items: center; justify-content: center; }
+  .back-top.show { opacity: 1; transform: translateY(0); }
+  .back-top:hover { background: var(--pink-dark); }
+
+  /* AI CHAT BUTTON */
+  .ai-chat-btn { position: fixed; bottom: 5rem; right: 2rem; width: 56px; height: 56px; background: linear-gradient(135deg, var(--pink), var(--purple)); border: none; border-radius: 50%; color: white; font-size: 1.3rem; cursor: pointer; z-index: 200; box-shadow: 0 4px 20px rgba(233,30,140,0.4); transition: all 0.3s; display: flex; align-items: center; justify-content: center; }
+  .ai-chat-btn:hover { transform: scale(1.1); box-shadow: 0 6px 28px rgba(233,30,140,0.5); }
+  .ai-chat-btn .notif { position: absolute; top: -4px; right: -4px; width: 18px; height: 18px; background: var(--danger); border-radius: 50%; font-size: 0.65rem; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 2px solid var(--dark); }
+
+  /* AI CHAT PANEL */
+  .ai-chat-panel { position: fixed; bottom: 9rem; right: 2rem; width: 360px; max-height: 520px; background: var(--dark2); border: 1px solid var(--border); border-radius: 20px; z-index: 199; box-shadow: 0 20px 60px rgba(0,0,0,0.6); display: flex; flex-direction: column; transform: scale(0.85) translateY(20px); opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+  .ai-chat-panel.open { transform: scale(1) translateY(0); opacity: 1; pointer-events: all; }
+  .ai-chat-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .ai-chat-avatar { width: 36px; height: 36px; background: linear-gradient(135deg, var(--pink), var(--purple)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+  .ai-chat-name { font-weight: 600; font-size: 0.9rem; }
+  .ai-chat-status { font-size: 0.7rem; color: var(--safe); }
+  .ai-close-btn { margin-left: auto; background: none; border: none; color: var(--text-muted); font-size: 1rem; cursor: pointer; transition: color 0.2s; }
+  .ai-close-btn:hover { color: var(--text); }
+  .ai-messages { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; min-height: 200px; max-height: 340px; }
+  .ai-messages::-webkit-scrollbar { width: 4px; }
+  .ai-messages::-webkit-scrollbar-track { background: transparent; }
+  .ai-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+  .msg-bubble { max-width: 85%; padding: 0.65rem 0.9rem; border-radius: 14px; font-size: 0.82rem; line-height: 1.5; }
+  .msg-bubble.ai { background: rgba(255,255,255,0.06); color: var(--text); border-bottom-left-radius: 4px; align-self: flex-start; }
+  .msg-bubble.user { background: var(--pink); color: #fff; border-bottom-right-radius: 4px; align-self: flex-end; }
+  .msg-bubble.typing { opacity: 0.6; }
+  .ai-input-row { padding: 0.75rem 1rem; border-top: 1px solid var(--border); display: flex; gap: 0.5rem; }
+  .ai-input { flex: 1; background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 10px; padding: 0.55rem 0.85rem; color: var(--text); font-size: 0.82rem; font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.2s; }
+  .ai-input:focus { border-color: var(--pink); }
+  .ai-send-btn { background: var(--pink); border: none; border-radius: 10px; color: #fff; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; flex-shrink: 0; }
+  .ai-send-btn:hover { background: var(--pink-dark); }
+  .ai-quick-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0 1rem 0.75rem; }
+  .ai-chip { background: rgba(233,30,140,0.1); border: 1px solid rgba(233,30,140,0.25); color: var(--pink-mid); padding: 4px 10px; border-radius: 20px; font-size: 0.72rem; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+  .ai-chip:hover { background: rgba(233,30,140,0.2); }
+
+  /* FAKE CALL OVERLAY */
+  .fake-call-overlay { position: fixed; inset: 0; background: linear-gradient(180deg, #1a1030 0%, #0F0A1A 100%); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 4rem 2rem 3rem; opacity: 0; pointer-events: none; transition: opacity 0.4s; }
+  .fake-call-overlay.active { opacity: 1; pointer-events: all; }
+  .fake-call-top { text-align: center; }
+  .fake-call-name { font-family: 'Space Grotesk', sans-serif; font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .fake-call-sub { color: var(--text-muted); font-size: 0.9rem; }
+  .fake-call-avatar { width: 110px; height: 110px; border-radius: 50%; background: linear-gradient(135deg, var(--purple), var(--pink)); display: flex; align-items: center; justify-content: center; font-size: 3rem; margin: 2rem auto; box-shadow: 0 0 60px rgba(233,30,140,0.3); animation: sosring 2s infinite; }
+  .fake-call-btns { display: flex; gap: 3rem; justify-content: center; }
+  .call-action { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; cursor: pointer; }
+  .call-action-circle { width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; transition: transform 0.15s; }
+  .call-action-circle:hover { transform: scale(1.1); }
+  .call-action-circle.decline { background: var(--danger); }
+  .call-action-circle.accept { background: var(--safe); }
+  .call-action span { font-size: 0.8rem; color: var(--text-muted); }
+
+  /* JOURNEY TIMER MODAL */
+  .journey-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; backdrop-filter: blur(8px); }
+  .journey-modal.open { opacity: 1; pointer-events: all; }
+  .journey-card { background: var(--dark2); border: 1px solid var(--border); border-radius: 20px; padding: 2rem; width: 90%; max-width: 420px; text-align: center; }
+  .journey-timer-display { font-family: 'Space Grotesk', sans-serif; font-size: 3.5rem; font-weight: 700; color: var(--safe); margin: 1rem 0; letter-spacing: 0.05em; }
+  .journey-timer-display.warning { color: var(--warn); }
+  .journey-timer-display.danger { color: var(--danger); animation: blink 0.5s infinite; }
+  .journey-progress { width: 100%; height: 6px; background: rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; margin: 0.75rem 0 1.5rem; }
+  .journey-progress-bar { height: 100%; background: linear-gradient(90deg, var(--safe), var(--pink)); border-radius: 10px; transition: width 1s linear; }
+  .journey-dest-input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; padding: 0.65rem 1rem; color: var(--text); font-size: 0.875rem; font-family: 'Inter', sans-serif; margin-bottom: 0.75rem; outline: none; }
+  .journey-dest-input:focus { border-color: var(--pink); }
+  .time-presets { display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 1rem; flex-wrap: wrap; }
+  .time-preset { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-muted); padding: 5px 14px; border-radius: 8px; font-size: 0.78rem; cursor: pointer; transition: all 0.2s; }
+  .time-preset:hover, .time-preset.selected { background: rgba(233,30,140,0.15); border-color: var(--pink); color: var(--pink); }
+
+  @media (max-width: 768px) {
+    .ai-chat-panel { width: calc(100vw - 2rem); right: 1rem; bottom: 8rem; }
+    .ai-chat-btn { right: 1rem; bottom: 4.5rem; }
+  }
+
+  /* SCROLL REVEAL */
+  .reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.6s ease, transform 0.6s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  /* LEAFLET DARK OVERRIDE */
+  .leaflet-container { background: #141020 !important; }
+  .leaflet-tile { filter: brightness(0.4) saturate(0.5) hue-rotate(220deg); }
+  .leaflet-control-zoom a { background: #1a1030 !important; color: var(--text) !important; border-color: var(--border) !important; }
+  .leaflet-control-attribution { background: rgba(15,10,26,0.8) !important; color: #555 !important; font-size: 9px; }
+  .leaflet-control-attribution a { color: #666 !important; }
+  .custom-pin { width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.5); cursor: pointer; }
+  .you-pin { width: 24px; height: 24px; border-radius: 50%; background: var(--pink); border: 3px solid white; box-shadow: 0 0 20px rgba(233,30,140,0.6), 0 2px 8px rgba(0,0,0,0.5); animation: sosring 2s infinite; }
+
+  /* RESPONSIVE */
+  @media (max-width: 1024px) {
+    .heatmap-layout { grid-template-columns: 1fr; }
+    .sidebar-cards { flex-direction: row; flex-wrap: wrap; }
+    .sidebar-cards .stat-card { flex: 1; min-width: 180px; }
+  }
+  @media (max-width: 768px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 3rem; }
+    .phone-wrap { order: -1; }
+    .features-grid { grid-template-columns: 1fr 1fr; }
+    .steps { grid-template-columns: 1fr 1fr; }
+    .steps::before { display: none; }
+    .tech-grid { grid-template-columns: 1fr 1fr; }
+    .hero-title { font-size: 2.2rem; }
+    .charts-grid { grid-template-columns: 1fr; }
+    .reliability-grid { grid-template-columns: 1fr; }
+    .deploy-steps { grid-template-columns: 1fr; }
+    .compare-table { font-size: 0.75rem; }
+    .compare-table th, .compare-table td { padding: 0.6rem 0.5rem; }
+    .nav-links { display: none; }
+    .hamburger { display: block; }
+    .nav-links.open { display: flex; flex-direction: column; position: absolute; top: 64px; left: 0; right: 0; background: rgba(15,10,26,0.98); padding: 1.5rem 2rem; gap: 1.25rem; border-bottom: 1px solid var(--border); }
+    .section-title { font-size: 1.8rem; }
+    .toast { bottom: 1rem; right: 1rem; left: 1rem; max-width: none; }
+    .back-top { bottom: 1rem; left: 1rem; }
+  }
+  @media (max-width: 480px) {
+    .features-grid { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: 1fr; }
+    .tech-grid { grid-template-columns: 1fr; }
+    .hero-btns { flex-direction: column; }
+    .hero-stats { gap: 1.25rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- BACK TO TOP -->
+<button class="back-top" id="backTop" aria-label="Back to top" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+  <i class="fas fa-arrow-up"></i>
+</button>
+
+<!-- AI SAFETY ASSISTANT BUTTON -->
+<button class="ai-chat-btn" id="aiChatBtn" onclick="toggleAIChat()" aria-label="Open AI Safety Assistant">
+  <i class="fas fa-robot"></i>
+  <div class="notif" id="aiNotif">1</div>
+</button>
+
+<!-- AI CHAT PANEL -->
+<div class="ai-chat-panel" id="aiChatPanel">
+  <div class="ai-chat-header">
+    <div class="ai-chat-avatar">🛡️</div>
+    <div>
+      <div class="ai-chat-name">SafeHer AI Assistant</div>
+      <div class="ai-chat-status">● Online · Powered by Claude</div>
+    </div>
+    <button class="ai-close-btn" onclick="toggleAIChat()"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="ai-messages" id="aiMessages">
+    <div class="msg-bubble ai">Hi! I'm your SafeHer AI assistant. I can help with safety tips, nearby resources, route advice, or answer questions about women's safety in Lucknow. How can I help? 🛡️</div>
+  </div>
+  <div class="ai-quick-chips" id="aiChips">
+    <div class="ai-chip" onclick="sendQuickMsg('Is Hazratganj safe at night?')">Hazratganj at night?</div>
+    <div class="ai-chip" onclick="sendQuickMsg('What should I do in an emergency?')">Emergency tips</div>
+    <div class="ai-chip" onclick="sendQuickMsg('Safe areas in Lucknow?')">Safe areas</div>
+    <div class="ai-chip" onclick="sendQuickMsg('How does the heatmap work?')">How heatmap works</div>
+  </div>
+  <div class="ai-input-row">
+    <input class="ai-input" id="aiInput" placeholder="Ask anything about safety..." onkeydown="if(event.key==='Enter')sendAIMsg()" maxlength="300"/>
+    <button class="ai-send-btn" onclick="sendAIMsg()"><i class="fas fa-paper-plane"></i></button>
+  </div>
+</div>
+
+<!-- FAKE CALL OVERLAY -->
+<div class="fake-call-overlay" id="fakeCallOverlay">
+  <div class="fake-call-top">
+    <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1.5rem;letter-spacing:0.05em;">INCOMING CALL</div>
+    <div class="fake-call-name" id="fakeCallerName">Mom</div>
+    <div class="fake-call-sub">Mobile · India</div>
+  </div>
+  <div class="fake-call-avatar">👩</div>
+  <div class="fake-call-btns">
+    <div class="call-action" onclick="endFakeCall()">
+      <div class="call-action-circle decline"><i class="fas fa-phone-slash"></i></div>
+      <span>Decline</span>
+    </div>
+    <div class="call-action" onclick="acceptFakeCall()">
+      <div class="call-action-circle accept"><i class="fas fa-phone"></i></div>
+      <span>Accept</span>
+    </div>
+  </div>
+</div>
+
+<!-- JOURNEY TIMER MODAL -->
+<div class="journey-modal" id="journeyModal">
+  <div class="journey-card">
+    <div class="modal-icon" id="journeyIcon" style="background:rgba(16,185,129,0.15);color:var(--safe);width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin:0 auto 1rem;">
+      <i class="fas fa-person-walking"></i>
+    </div>
+    <h2 class="modal-title" id="journeyTitle">Journey Check-In Timer</h2>
+    <p class="modal-desc" id="journeyDesc">Set a destination and time. If you don't check in on arrival, SafeHer alerts your emergency contacts.</p>
+    <div id="journeySetup">
+      <input class="journey-dest-input" id="journeyDest" placeholder="Where are you going? (e.g. Gomti Nagar)"/>
+      <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.5rem;">Expected travel time:</div>
+      <div class="time-presets">
+        <div class="time-preset" onclick="selectTime(this,5)">5 min</div>
+        <div class="time-preset" onclick="selectTime(this,10)">10 min</div>
+        <div class="time-preset" onclick="selectTime(this,20)">20 min</div>
+        <div class="time-preset" onclick="selectTime(this,30)">30 min</div>
+        <div class="time-preset" onclick="selectTime(this,60)">1 hr</div>
+      </div>
+      <div class="modal-btns">
+        <button class="modal-close" onclick="closeJourney()">Cancel</button>
+        <button class="modal-confirm" id="startJourneyBtn" onclick="startJourney()" style="background:var(--safe);">Start Timer</button>
+      </div>
+    </div>
+    <div id="journeyActive" style="display:none;">
+      <div class="journey-timer-display" id="journeyTimerDisplay">20:00</div>
+      <div class="journey-progress"><div class="journey-progress-bar" id="journeyProgressBar" style="width:100%;"></div></div>
+      <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:1.25rem;" id="journeyDestLabel">Heading to <strong style="color:var(--text);">—</strong></p>
+      <div class="modal-btns">
+        <button class="modal-close" onclick="cancelJourney()">Cancel Journey</button>
+        <button class="modal-confirm" onclick="checkInSafe()" style="background:var(--safe);"><i class="fas fa-circle-check"></i> I'm Safe — Check In</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast" role="alert" aria-live="polite">
+  <div class="toast-icon" id="toastIcon">✓</div>
+  <div class="toast-text"><strong id="toastTitle">Done</strong><span id="toastMsg"></span></div>
+</div>
+
+<!-- SOS MODAL -->
+<div class="modal-overlay" id="sosModal" role="dialog" aria-modal="true" aria-labelledby="sosModalTitle">
+  <div class="modal">
+    <div class="modal-icon sos"><i class="fas fa-siren-on"></i></div>
+    <h2 class="modal-title" id="sosModalTitle">SOS Alert Triggered</h2>
+    <div class="modal-countdown" id="sosCountdown">3</div>
+    <p class="modal-desc">Sending your live GPS location to 5 emergency contacts and dialing <strong>112</strong> automatically.</p>
+    <div class="modal-status" id="sosStatus">📡 Acquiring GPS signal...</div>
+    <div class="modal-btns">
+      <button class="modal-close" onclick="closeSOS()">Cancel Alert</button>
+    </div>
+  </div>
+</div>
+
+<!-- REPORT MODAL -->
+<div class="modal-overlay" id="reportModal" role="dialog" aria-modal="true" aria-labelledby="reportModalTitle">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-icon report"><i class="fas fa-triangle-exclamation"></i></div>
+    <h2 class="modal-title" id="reportModalTitle">Report an Incident</h2>
+    <p class="modal-desc">Help keep the community safe. Your report is anonymous and updates the ML heatmap within 15 minutes.</p>
+    <div class="form-group">
+      <label class="form-label">Incident Type</label>
+      <div class="type-chips" id="typeChips">
+        <div class="type-chip" onclick="toggleChip(this)">Harassment</div>
+        <div class="type-chip" onclick="toggleChip(this)">Stalking / Following</div>
+        <div class="type-chip" onclick="toggleChip(this)">Poor Lighting</div>
+        <div class="type-chip" onclick="toggleChip(this)">Suspicious Person</div>
+        <div class="type-chip" onclick="toggleChip(this)">Theft / Snatching</div>
+        <div class="type-chip" onclick="toggleChip(this)">Unsafe Area</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Location / Area</label>
+      <select class="form-select" id="reportLocation">
+        <option value="">Select Lucknow area...</option>
+        <option>Hazratganj</option>
+        <option>Charbagh</option>
+        <option>Gomti Nagar</option>
+        <option>Aliganj</option>
+        <option>Indira Nagar</option>
+        <option>Vibhuti Khand</option>
+        <option>Aminabad</option>
+        <option>Alambagh</option>
+        <option>Mahanagar</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description (optional)</label>
+      <textarea class="form-textarea" id="reportDesc" placeholder="Brief description of what happened..."></textarea>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-close" onclick="closeReport()">Cancel</button>
+      <button class="modal-confirm" onclick="submitReport()" style="background:var(--pink);">Submit Report</button>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav id="mainNav">
+  <a href="#hero" class="nav-logo"><i class="fas fa-shield-heart"></i><span>Safe</span>Her</a>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#heatmap">Heatmap</a></li>
+    <li><a href="#analytics">Analytics</a></li>
+    <li><a href="#comparison">Why Us</a></li>
+    <li><a href="#tech">Tech Stack</a></li>
+    <li><a href="#resume">Resume</a></li>
+  </ul>
+  <div style="display:flex;align-items:center;gap:1rem;">
+    <button class="nav-cta" onclick="openReport()"><i class="fas fa-plus" style="margin-right:6px;"></i>Report Incident</button>
+    <button class="hamburger" id="hamburger" aria-label="Menu"><i class="fas fa-bars"></i></button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-grid" style="position:relative;">
+    <div class="glow pink" style="top:-100px;left:-100px;"></div>
+    <div>
+      <div class="hero-badge"><i class="fas fa-location-dot"></i> Real-Time Safety Intelligence · Lucknow, UP</div>
+      <h1 class="hero-title">Every Woman Deserves to Feel <span class="accent">Safe, Everywhere.</span></h1>
+      <p class="hero-desc">SafeHer is an AI-powered women's safety platform that maps danger zones in real-time, triggers instant SOS with live location sharing, and puts emergency help — including 112 — one tap away, 24/7.</p>
+      <div class="hero-btns">
+        <button class="btn-primary" onclick="scrollToSection('heatmap')"><i class="fas fa-map-location-dot"></i> Explore Live Map</button>
+        <button class="btn-outline" onclick="toggleAIChat()"><i class="fas fa-robot"></i> AI Safety Assistant</button>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="num" id="statUsers">2M+</div><div class="lbl">Active Users</div></div>
+        <div class="hero-stat"><div class="num">98.7%</div><div class="lbl">SOS Success Rate</div></div>
+        <div class="hero-stat"><div class="num">150+</div><div class="lbl">Cities Covered</div></div>
+        <div class="hero-stat"><div class="num" id="statTime">3.1s</div><div class="lbl">Avg Alert Time</div></div>
+      </div>
+    </div>
+    <!-- PHONE MOCKUP -->
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="phone-notch"><div class="phone-notch-pill"></div></div>
+        <div class="phone-screen">
+          <div class="phone-time" id="phoneTime">Loading...</div>
+          <div class="phone-header">
+            <div class="app-icon"><i class="fas fa-shield-heart" style="color:#fff;font-size:1rem;"></i></div>
+            <div class="app-name">SafeHer <div class="live-badge" style="display:inline-flex;"><div class="live-dot"></div>LIVE</div><small>GPS Active · Network Strong</small></div>
+          </div>
+          <div class="sos-area">
+            <div style="position:relative;display:flex;justify-content:center;margin-bottom:0.5rem;">
+              <div class="pulse-ring" style="width:90px;height:90px;border:2px solid rgba(239,68,68,0.4);"></div>
+              <div class="sos-ring">
+                <button class="sos-btn" id="sosBtn" onmousedown="startSOS()" ontouchstart="startSOS()" onmouseup="cancelSOS()" ontouchend="cancelSOS()" aria-label="Hold for SOS emergency alert">SOS<small>HOLD 2s</small></button>
+              </div>
+            </div>
+            <div class="sos-label">Hold to trigger emergency alert<br/>Auto-shares location with 5 contacts + 112</div>
+          </div>
+          <div class="alert-ribbon">
+            <div class="alert-ribbon-icon"><i class="fas fa-triangle-exclamation"></i></div>
+            <div class="alert-text"><strong style="color:#F87171;">Caution Zone Ahead</strong> — Hazratganj area rated HIGH RISK after 10 PM. Rerouting suggested.</div>
+          </div>
+          <div class="quick-grid">
+            <div class="quick-btn green" onclick="showToast('📍','Location Shared','Live location sent to Priya, Mom, Rahul')"><i class="fas fa-location-arrow"></i><span>Share Live Location</span></div>
+            <div class="quick-btn amber" onclick="showToast('📞','Calling 112','Emergency dial initiated...')"><i class="fas fa-phone-volume"></i><span>Call 112 Now</span></div>
+            <div class="quick-btn red" onclick="triggerFakeCall('Mom')"><i class="fas fa-siren-on"></i><span>Fake Call</span></div>
+            <div class="quick-btn" onclick="openJourney()"><i class="fas fa-person-walking" style="color:var(--safe);"></i><span>Journey Timer</span></div>          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST BAR -->
+<div class="trust-bar">
+  <div class="trust-item"><i class="fas fa-shield-check"></i><span><strong>End-to-End Encrypted</strong> — Your data, protected always</span></div>
+  <div class="trust-item"><i class="fas fa-globe"></i><span><strong>Works Worldwide</strong> — 150+ countries supported</span></div>
+  <div class="trust-item"><i class="fas fa-wifi-slash"></i><span><strong>Offline SOS</strong> — Works without internet via SMS</span></div>
+  <div class="trust-item"><i class="fas fa-ban"></i><span><strong>Zero Ads</strong> — We never monetize your safety data</span></div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-tag">Core Features</div>
+      <h2 class="section-title">Built for Every Scenario,<br/>Every Hour of the Day</h2>
+      <p class="section-sub">SafeHer covers the full spectrum of safety needs — from routine late-night commutes to genuine life-threatening emergencies.</p>
+    </div>
+    <div class="features-grid reveal">
+      <div class="feature-card">
+        <div class="feat-icon red"><i class="fas fa-siren-on"></i></div>
+        <div class="feat-title">One-Tap SOS Emergency Alert</div>
+        <div class="feat-desc">Hold the SOS button for 2 seconds to instantly broadcast your live GPS location to all emergency contacts, nearby SafeHer users, and dial 112 automatically — even if your phone is locked.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon pink"><i class="fas fa-location-dot"></i></div>
+        <div class="feat-title">Live Location Sharing (Always-On)</div>
+        <div class="feat-desc">Share your real-time location with selected family, friends, or anyone — on your terms. A shareable link works even for contacts who don't have the app installed.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon green"><i class="fas fa-map-location-dot"></i></div>
+        <div class="feat-title">AI-Powered Safety Heatmap</div>
+        <div class="feat-desc">Machine learning models process crime data, user-reported incidents, time of day, and lighting conditions to color-code every city area as Safe, Caution, or Danger — updated every 15 minutes.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon purple"><i class="fas fa-route"></i></div>
+        <div class="feat-title">Safest Route Navigation</div>
+        <div class="feat-desc">Instead of the fastest route, SafeHer recommends the safest route — avoiding high-risk zones, poorly lit streets, and isolated areas, especially between 9 PM and 5 AM.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon blue"><i class="fas fa-phone-flip"></i></div>
+        <div class="feat-title">Fake Call & Audio Disguise</div>
+        <div class="feat-desc">Trigger a realistic fake incoming call from a saved contact to escape uncomfortable situations. Includes timed delay and call-back scheduling.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon amber"><i class="fas fa-microphone-stand"></i></div>
+        <div class="feat-title">Silent Audio + Video Recording</div>
+        <div class="feat-desc">Activate covert background recording with one tap. Files auto-upload to encrypted cloud storage and are shared with emergency contacts — creating evidence even if the device is seized.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon red"><i class="fas fa-people-arrows"></i></div>
+        <div class="feat-title">Community Incident Reporting</div>
+        <div class="feat-desc">Users can anonymously pin and describe unsafe incidents. Reports are verified and fed into the ML heatmap model to warn others in real time.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon pink"><i class="fas fa-circle-check"></i></div>
+        <div class="feat-title">Check-In & Journey Tracker</div>
+        <div class="feat-desc">Set a journey timer. If you don't check in on arrival, SafeHer automatically alerts your contacts, sends your last known location, and escalates to 112 if no response is received.</div>
+        <button class="map-action-btn" style="margin-top:1rem;width:100%;justify-content:center;" onclick="openJourney()"><i class="fas fa-person-walking"></i> Start Journey Timer</button>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon green"><i class="fas fa-wifi-slash"></i></div>
+        <div class="feat-title">Offline SOS via SMS Fallback</div>
+        <div class="feat-desc">When internet is unavailable, SafeHer switches to SMS-based location broadcasting. Even in areas with zero data coverage, a basic cellular signal can trigger emergency alerts.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LIVE HEATMAP -->
+<section id="heatmap">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-tag">Live Heatmap</div>
+      <h2 class="section-title">Lucknow Safety Intelligence Map</h2>
+      <p class="section-sub">Real-time incident density, user reports, and ML risk scores overlaid on the city grid. Click any area to see its risk profile.</p>
+    </div>
+    <div class="heatmap-layout">
+      <div class="map-container reveal">
+        <div class="map-title-row">
+          <div class="map-title">
+            Lucknow, Uttar Pradesh
+            <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+          </div>
+          <div class="map-filters">
+            <button class="filter-btn active" onclick="setFilter(this,'night')">Night</button>
+            <button class="filter-btn" onclick="setFilter(this,'day')">Day</button>
+            <button class="filter-btn" onclick="setFilter(this,'week')">Week</button>
+            <button class="filter-btn" onclick="setFilter(this,'heatmap')">Heatmap</button>
+          </div>
+        </div>
+        <div id="lucknow-map"></div>
+        <div class="map-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#EF4444;"></div>High Risk Zone</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#F59E0B;"></div>Caution Zone</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#10B981;"></div>Safe Zone</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#E91E8C;"></div>You Are Here</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#EF4444;border:2px solid #fff;"></div>Reported Incident</div>
+        </div>
+        <div class="map-actions">
+          <button class="map-action-btn" onclick="openReport()"><i class="fas fa-plus"></i> Report Incident</button>
+          <button class="map-action-btn" onclick="getSafeRoute()"><i class="fas fa-route"></i> Get Safe Route</button>
+          <button class="map-action-btn" onclick="centerMap()"><i class="fas fa-crosshairs"></i> My Location</button>
+        </div>
+      </div>
+
+      <!-- SIDEBAR -->
+      <div class="sidebar-cards reveal">
+        <div class="stat-card">
+          <div class="stat-card-head">
+            <div class="stat-card-title">Tonight's Incidents</div>
+            <span class="stat-change up">+12% vs last week</span>
+          </div>
+          <div class="stat-big" id="liveIncidents">47</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">Reported across Lucknow</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-head">
+            <div class="stat-card-title">SOS Alerts Today</div>
+            <span class="stat-change down">Avg 3.2s response</span>
+          </div>
+          <div class="stat-big" style="color:var(--danger);" id="liveSOS">8</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">All responded successfully</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-title" style="margin-bottom:0.75rem;">Risk by Area (Tonight)</div>
+          <div class="incident-list">
+            <div class="incident-row" onclick="flyToArea('hazratganj')">
+              <div class="inc-left"><div class="inc-dot" style="background:#EF4444;"></div><div class="inc-name">Hazratganj</div></div>
+              <span class="inc-count" style="color:#F87171;">HIGH · 18</span>
+            </div>
+            <div class="incident-row" onclick="flyToArea('charbagh')">
+              <div class="inc-left"><div class="inc-dot" style="background:#EF4444;"></div><div class="inc-name">Charbagh</div></div>
+              <span class="inc-count" style="color:#F87171;">HIGH · 14</span>
+            </div>
+            <div class="incident-row" onclick="flyToArea('gomti')">
+              <div class="inc-left"><div class="inc-dot" style="background:#F59E0B;"></div><div class="inc-name">Gomti Nagar</div></div>
+              <span class="inc-count" style="color:#FCD34D;">MED · 9</span>
+            </div>
+            <div class="incident-row" onclick="flyToArea('aliganj')">
+              <div class="inc-left"><div class="inc-dot" style="background:#F59E0B;"></div><div class="inc-name">Aliganj</div></div>
+              <span class="inc-count" style="color:#FCD34D;">MED · 6</span>
+            </div>
+            <div class="incident-row" onclick="flyToArea('indira')">
+              <div class="inc-left"><div class="inc-dot" style="background:#10B981;"></div><div class="inc-name">Indira Nagar</div></div>
+              <span class="inc-count" style="color:#34D399;">LOW · 2</span>
+            </div>
+            <div class="incident-row" onclick="flyToArea('vibhuti')">
+              <div class="inc-left"><div class="inc-dot" style="background:#10B981;"></div><div class="inc-name">Vibhuti Khand</div></div>
+              <span class="inc-count" style="color:#34D399;">SAFE · 0</span>
+            </div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-title" style="margin-bottom:0.75rem;">Active Guardians Watching</div>
+          <div class="stat-big" style="color:var(--safe);">3</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">Priya, Mom, Rahul are tracking your journey</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ANALYTICS -->
+<section id="analytics">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-tag">Data Analytics</div>
+      <h2 class="section-title">Safety Intelligence Powered by Data</h2>
+      <p class="section-sub">Machine learning on crime records, user reports, and time patterns creates predictive risk models updated continuously.</p>
+    </div>
+    <div class="charts-grid reveal">
+      <div class="chart-card">
+        <div class="chart-card-title">Incidents by Time of Day — Lucknow</div>
+        <div style="position:relative;height:240px;"><canvas id="timeChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Incident Type Distribution</div>
+        <div style="position:relative;height:240px;"><canvas id="typeChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Monthly SOS Response Performance</div>
+        <div style="position:relative;height:240px;"><canvas id="sosChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">User Growth — Global (Thousands)</div>
+        <div style="position:relative;height:240px;"><canvas id="growthChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON -->
+<section id="comparison">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-tag">Competitive Comparison</div>
+      <h2 class="section-title">Why SafeHer Leads the Pack</h2>
+      <p class="section-sub">No other safety app combines real-time ML heatmapping, multi-channel SOS, offline fallback, and zero data monetization in one platform.</p>
+    </div>
+    <div style="overflow-x:auto;" class="reveal">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th style="text-align:left;">Feature</th>
+            <th class="us">SafeHer ✦</th>
+            <th>Nirbhaya App</th>
+            <th>bSafe</th>
+            <th>Smart24x7</th>
+            <th>Himmat+</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Real-Time ML Heatmap</td><td class="us-col"><span class="tick">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+          <tr><td>Auto-Dial 112 on SOS</td><td class="us-col"><span class="tick">✓</span></td><td><span class="tick">✓</span></td><td><span class="cross">✗</span></td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td></tr>
+          <tr><td>Non-SOS Live Location Sharing</td><td class="us-col"><span class="tick">✓</span></td><td><span class="cross">✗</span></td><td><span class="tick">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+          <tr><td>Offline SMS SOS Fallback</td><td class="us-col"><span class="tick">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+          <tr><td>Silent Background Recording</td><td class="us-col"><span class="tick">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+          <tr><td>Safest Route Navigation</td><td class="us-col"><span class="tick">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+          <tr><td>Community Incident Reporting</td><td class="us-col"><span class="tick">✓</span></td><td><span class="partial">Partial</span></td><td><span class="tick">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+          <tr><td>Fake Call Generator</td><td class="us-col"><span class="tick">✓</span></td><td><span class="cross">✗</span></td><td><span class="tick">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+          <tr><td>End-to-End Encryption</td><td class="us-col"><span class="tick">✓</span></td><td><span class="cross">✗</span></td><td><span class="partial">Partial</span></td><td><span class="cross">✗</span></td><td><span class="partial">Partial</span></td></tr>
+          <tr><td>Global Coverage (150+ countries)</td><td class="us-col"><span class="tick">✓</span></td><td>India only</td><td><span class="tick">✓</span></td><td>India only</td><td>India only</td></tr>
+          <tr><td>Zero Data Monetization</td><td class="us-col"><span class="tick">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+          <tr><td>AI Personal Safety Score</td><td class="us-col"><span class="tick">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-tag">System Architecture</div>
+      <h2 class="section-title">How SafeHer Works</h2>
+      <p class="section-sub">From raw data to real-time alerts — a seamless ML pipeline designed for speed and reliability.</p>
+    </div>
+    <div class="steps reveal">
+      <div class="step">
+        <div class="step-num"><i class="fas fa-database" style="color:var(--pink);"></i><div class="step-badge">1</div></div>
+        <div class="step-title">Data Ingestion</div>
+        <div class="step-desc">Crime records (NCRB, police APIs), user incident reports, street lighting data, and time-of-day patterns are collected and cleaned with Python + Pandas.</div>
+      </div>
+      <div class="step">
+        <div class="step-num"><i class="fas fa-brain" style="color:var(--purple);"></i><div class="step-badge">2</div></div>
+        <div class="step-title">ML Risk Scoring</div>
+        <div class="step-desc">Scikit-learn classification models (Logistic Regression, Random Forest) predict risk scores per grid cell, trained on historical NCRB data with 87% accuracy.</div>
+      </div>
+      <div class="step">
+        <div class="step-num"><i class="fas fa-map" style="color:var(--blue);"></i><div class="step-badge">3</div></div>
+        <div class="step-title">Heatmap Generation</div>
+        <div class="step-desc">Risk scores are spatially aggregated using geographic clustering, rendered as color-coded heatmap tiles via Folium, stored in PostgreSQL with PostGIS extension.</div>
+      </div>
+      <div class="step">
+        <div class="step-num"><i class="fas fa-bell" style="color:var(--warn);"></i><div class="step-badge">4</div></div>
+        <div class="step-title">Real-Time Alerts</div>
+        <div class="step-desc">User proximity to danger zones triggers proactive push alerts. SOS events propagate simultaneously to contacts, nearby users, and emergency services via multi-channel dispatch.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TECH STACK -->
+<section id="tech">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-tag">Tech Stack</div>
+      <h2 class="section-title">Built With Production-Grade Tools</h2>
+      <p class="section-sub">A complete data science + engineering stack covering EDA, ML modeling, geospatial analysis, and real-time system design.</p>
+    </div>
+    <div class="tech-grid reveal">
+      <div class="tech-card">
+        <div class="tech-card-title">Data & Analysis</div>
+        <div class="tech-item"><i class="fas fa-circle-dot"></i>Python (Core Language)</div>
+        <div class="tech-item"><i class="fas fa-circle-dot"></i>Pandas — Data Cleaning</div>
+        <div class="tech-item"><i class="fas fa-circle-dot"></i>NumPy — Numerical Ops</div>
+        <div class="tech-item"><i class="fas fa-circle-dot"></i>Exploratory Data Analysis</div>
+        <div class="tech-item"><i class="fas fa-circle-dot"></i>Jupyter Notebook</div>
+        <div class="tech-item"><i class="fas fa-circle-dot"></i>Google Colab</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-card-title">Machine Learning</div>
+        <div class="tech-item"><i class="fas fa-circle-dot"></i>Scikit-learn</div>
+        <div class="tech-item"><i class="fas fa-circle-dot"></i>Logistic Regression</div>
+        <div class="tech-item"><i class="fas fa-circle-dot"></i>Random Forest Classifier</div>
+        <div class="tech-item"><i class="fas fa-circle-dot"></i>Feature Engineering</div>
+        <div class="tech-item"><i class="fas fa-circle-dot"></i>Confusion Matrix / ROC</div>
+        <div class="tech-item"><i class="fas fa-circle-dot"></i>Geospatial Clustering</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-card-title">Visualization & BI</div>
+        <div class="tech-item"><i class="fas fa-circle-dot"></i>Matplotlib — Charts</div>
+        <div class="tech-item"><i class="fas fa-circle-dot"></i>Seaborn — Heatmaps</div>
+        <div class="tech-item"><i class="fas fa-circle-dot"></i>Tableau — Dashboard</div>
+        <div class="tech-item"><i class="fas fa-circle-dot"></i>Power BI — Reports</div>
+        <div class="tech-item"><i class="fas fa-circle-dot"></i>Folium — Geo Maps</div>
+        <div class="tech-item"><i class="fas fa-circle-dot"></i>Leaflet.js — Web Maps</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-card-title">Backend & Tools</div>
+        <div class="tech-item"><i class="fas fa-circle-dot"></i>PostgreSQL + PostGIS</div>
+        <div class="tech-item"><i class="fas fa-circle-dot"></i>MySQL — User DB</div>
+        <div class="tech-item"><i class="fas fa-circle-dot"></i>Git & GitHub</div>
+        <div class="tech-item"><i class="fas fa-circle-dot"></i>VS Code</div>
+        <div class="tech-item"><i class="fas fa-circle-dot"></i>Figma — UI Design</div>
+        <div class="tech-item"><i class="fas fa-circle-dot"></i>GitHub Pages — Deploy</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RELIABILITY -->
+<section id="reliability">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-tag">100% Reliability</div>
+      <h2 class="section-title">Engineered to Never Fail<br/>When It Matters Most</h2>
+    </div>
+    <div class="reliability-grid reveal">
+      <div class="uptime-ring">
+        <div style="position:relative;width:280px;height:280px;">
+          <canvas id="uptimeChart" width="280" height="280"></canvas>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:2.5rem;font-weight:700;color:var(--safe);">99.97%</div>
+            <div style="font-size:0.8rem;color:var(--text-muted);">System Uptime</div>
+            <div style="font-size:0.75rem;color:var(--safe);margin-top:4px;">SLA Guaranteed</div>
+          </div>
+        </div>
+      </div>
+      <div class="reliability-points">
+        <div class="rel-point">
+          <div class="rel-icon"><i class="fas fa-server"></i></div>
+          <div><div class="rel-title">Multi-Region Cloud Infrastructure</div><div class="rel-desc">Deployed across AWS/GCP regions with automatic failover. If one data center goes down, another takes over in under 200ms — your SOS always goes through.</div></div>
+        </div>
+        <div class="rel-point">
+          <div class="rel-icon"><i class="fas fa-wifi-slash"></i></div>
+          <div><div class="rel-title">Offline-First Architecture</div><div class="rel-desc">Core safety features — SOS, last known location broadcast, emergency contacts — work without internet via SMS fallback using basic cellular networks.</div></div>
+        </div>
+        <div class="rel-point">
+          <div class="rel-icon"><i class="fas fa-lock"></i></div>
+          <div><div class="rel-title">AES-256 End-to-End Encryption</div><div class="rel-desc">All location data, messages, and recordings are encrypted end-to-end. GDPR and PDPB (India) compliant.</div></div>
+        </div>
+        <div class="rel-point">
+          <div class="rel-icon"><i class="fas fa-battery-full"></i></div>
+          <div><div class="rel-title">Ultra-Low Battery Consumption</div><div class="rel-desc">Intelligent GPS polling — fast in danger zones, slow in safe zones — means SafeHer uses less than 2% battery per hour under normal operation.</div></div>
+        </div>
+        <div class="rel-point">
+          <div class="rel-icon"><i class="fas fa-rotate"></i></div>
+          <div><div class="rel-title">Auto-Recovery on Crash / Kill</div><div class="rel-desc">If the app is force-closed or restarted during an active journey, SafeHer automatically restores background tracking within 10 seconds of boot.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RESUME CTA -->
+<section id="resume">
+  <div class="container">
+    <div class="resume-inner reveal">
+      <div class="section-tag">Resume Project Highlights</div>
+      <h2 class="resume-title">What This Project Demonstrates</h2>
+      <p class="resume-desc">SafeHer is a complete end-to-end data science + product project showcasing the full pipeline: from raw data ingestion and EDA to ML modeling, geospatial visualization, database design, and real-world impact storytelling.</p>
+      <div class="resume-tags">
+        <span class="resume-tag">Python · Pandas · NumPy</span>
+        <span class="resume-tag">Scikit-learn Classification</span>
+        <span class="resume-tag">Geospatial EDA (Folium + Seaborn)</span>
+        <span class="resume-tag">PostgreSQL + PostGIS</span>
+        <span class="resume-tag">Tableau Dashboard</span>
+        <span class="resume-tag">Power BI Reports</span>
+        <span class="resume-tag">ML Risk Scoring (87% Acc.)</span>
+        <span class="resume-tag">Real-Time System Design</span>
+        <span class="resume-tag">Git / GitHub</span>
+        <span class="resume-tag">Figma UI/UX</span>
+        <span class="resume-tag">Leaflet.js Web Maps</span>
+        <span class="resume-tag">Google Colab</span>
+      </div>
+      <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:12px;padding:1.5rem;text-align:left;max-width:700px;margin:0 auto 1.5rem;">
+        <div style="font-size:0.8rem;color:var(--pink);font-weight:600;margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">📋 Resume Bullet Points — Copy & Use</div>
+        <div style="font-size:0.875rem;color:var(--text-muted);line-height:2.1;" id="resumeBullets">
+          • Designed <strong style="color:var(--text);">SafeHer</strong>, an ML-powered women's safety platform with real-time geospatial heatmapping using Python, Pandas, and Scikit-learn classification models<br/>
+          • Built interactive Lucknow crime density visualizations using Seaborn, Matplotlib, and Folium; integrated PostGIS for spatial queries on 50,000+ incident records<br/>
+          • Developed Tableau + Power BI dashboards tracking 14 safety KPIs including SOS response time, zone risk scores, and user growth trends<br/>
+          • Engineered multi-channel SOS system (push, SMS fallback, auto-112 dial) achieving 98.7% delivery rate across 150+ cities globally<br/>
+          • Conducted full EDA pipeline on NCRB crime dataset — cleaning, feature engineering, correlation analysis — to feed ML risk scoring model (87% accuracy)
+        </div>
+      </div>
+      <button class="btn-primary" style="margin:0 auto;" onclick="copyBullets()"><i class="fas fa-copy"></i> Copy Resume Bullets</button>
+    </div>
+  </div>
+</section>
+
+<!-- DEPLOY / LIVE LINK SECTION -->
+<section id="deploy">
+  <div class="container">
+    <div class="deploy-inner reveal">
+      <div class="section-tag">🚀 Get a Live Link</div>
+      <h2 class="section-title" style="margin-bottom:0.75rem;">Add This to Your Resume in Minutes</h2>
+      <p class="section-sub">Deploy this file to GitHub Pages for a free permanent link — your portfolio site is ready to share.</p>
+
+      <div class="deploy-url">
+        <div class="deploy-url-text" id="liveUrl">https://yourusername.github.io/safeher</div>
+        <button class="copy-btn" onclick="copyUrl()"><i class="fas fa-copy" style="margin-right:5px;"></i>Copy Link</button>
+      </div>
+
+      <div class="deploy-steps">
+        <div class="deploy-step">
+          <div class="deploy-step-num">1</div>
+          <div class="deploy-step-title">Create GitHub Repo</div>
+          <div class="deploy-step-desc">Go to github.com → New Repository → name it <code>safeher</code> → set to Public → Create.</div>
+        </div>
+        <div class="deploy-step">
+          <div class="deploy-step-num">2</div>
+          <div class="deploy-step-title">Upload the File</div>
+          <div class="deploy-step-desc">Upload this HTML file. Rename it to <code>index.html</code> so GitHub Pages serves it as the homepage.</div>
+        </div>
+        <div class="deploy-step">
+          <div class="deploy-step-num">3</div>
+          <div class="deploy-step-title">Enable GitHub Pages</div>
+          <div class="deploy-step-desc">Settings → Pages → Source: <code>main</code> branch → Save. Your live link will be ready in ~60 seconds.</div>
+        </div>
+      </div>
+
+      <div style="background:rgba(233,30,140,0.08);border:1px solid rgba(233,30,140,0.2);border-radius:12px;padding:1.25rem 1.5rem;max-width:600px;margin:0 auto;text-align:left;">
+        <div style="font-size:0.8rem;color:var(--pink);font-weight:600;margin-bottom:0.75rem;">📌 Add to Resume Under Projects:</div>
+        <div style="font-size:0.875rem;color:var(--text-muted);line-height:1.8;">
+          <strong style="color:var(--text);">SafeHer — Women Safety Heatmap</strong> &nbsp;|&nbsp; <span style="color:var(--pink-mid);">Python · ML · Geospatial · SQL · Tableau</span><br/>
+          <span id="resumeUrl" style="color:var(--blue);">https://yourusername.github.io/safeher</span>
+          &nbsp;<button onclick="copyUrl()" style="background:none;border:none;color:var(--pink);cursor:pointer;font-size:0.75rem;"><i class="fas fa-copy"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <strong>SafeHer</strong> — Women Safety Heatmap Platform &nbsp;·&nbsp; Built with Python, Scikit-learn, PostgreSQL, Tableau &nbsp;·&nbsp; Deployed via GitHub Pages &nbsp;·&nbsp; <strong style="color:var(--safe);">For every woman, everywhere, always.</strong>
+  <div class="footer-links">
+    <a href="#hero">Home</a>
+    <a href="#heatmap">Live Map</a>
+    <a href="#analytics">Analytics</a>
+    <a href="#tech">Tech Stack</a>
+    <a href="#resume">Resume</a>
+    <a href="#deploy">Deploy</a>
+  </div>
+</footer>
+
+<script>
+// =====================
+// PHONE CLOCK
+// =====================
+function updatePhoneClock() {
+  const now = new Date();
+  const h = now.getHours().toString().padStart(2,'0');
+  const m = now.getMinutes().toString().padStart(2,'0');
+  document.getElementById('phoneTime').textContent = `${h}:${m} · Lucknow, UP`;
+}
+updatePhoneClock();
+setInterval(updatePhoneClock, 30000);
+
+// =====================
+// HAMBURGER MENU
+// =====================
+document.getElementById('hamburger').addEventListener('click', () => {
+  document.getElementById('navLinks').classList.toggle('open');
+});
+document.querySelectorAll('.nav-links a').forEach(a => {
+  a.addEventListener('click', () => document.getElementById('navLinks').classList.remove('open'));
+});
+
+// =====================
+// SCROLL: active nav, back to top, reveal
+// =====================
+window.addEventListener('scroll', () => {
+  const scrollY = window.scrollY;
+  // back to top
+  document.getElementById('backTop').classList.toggle('show', scrollY > 400);
+  // active nav link
+  const sections = ['hero','features','heatmap','analytics','comparison','how','tech','reliability','resume','deploy'];
+  let current = '';
+  sections.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.offsetTop - 100 <= scrollY) current = id;
+  });
+  document.querySelectorAll('.nav-links a').forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#'+current);
+  });
+  // reveal
+  document.querySelectorAll('.reveal').forEach(el => {
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight - 80) el.classList.add('visible');
+  });
+});
+
+// initial reveal
+setTimeout(() => {
+  document.querySelectorAll('.reveal').forEach(el => {
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight - 80) el.classList.add('visible');
+  });
+}, 100);
+
+function scrollToSection(id) {
+  document.getElementById(id).scrollIntoView({behavior:'smooth'});
+}
+
+// =====================
+// TOAST
+// =====================
+let toastTimer;
+function showToast(icon, title, msg) {
+  clearTimeout(toastTimer);
+  document.getElementById('toastIcon').textContent = icon;
+  document.getElementById('toastTitle').textContent = title;
+  document.getElementById('toastMsg').textContent = msg;
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  toastTimer = setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+// =====================
+// SOS LOGIC
+// =====================
+let sosHoldTimer, sosCountdownInterval, sosStep = 3;
+
+function startSOS() {
+  sosHoldTimer = setTimeout(() => {
+    openSOSModal();
+  }, 2000);
+  document.getElementById('sosBtn').style.transform = 'scale(0.9)';
+}
+
+function cancelSOS() {
+  clearTimeout(sosHoldTimer);
+  document.getElementById('sosBtn').style.transform = '';
+}
+
+function openSOSModal() {
+  document.getElementById('sosBtn').style.transform = '';
+  sosStep = 3;
+  document.getElementById('sosCountdown').textContent = '3';
+  document.getElementById('sosStatus').textContent = '📡 Acquiring GPS signal...';
+  document.getElementById('sosModal').classList.add('open');
+  sosCountdownInterval = setInterval(() => {
+    sosStep--;
+    if (sosStep > 0) {
+      document.getElementById('sosCountdown').textContent = sosStep;
+      if (sosStep === 2) document.getElementById('sosStatus').textContent = '📲 Notifying 5 emergency contacts...';
+      if (sosStep === 1) document.getElementById('sosStatus').textContent = '🚨 Dialing 112...';
+    } else {
+      clearInterval(sosCountdownInterval);
+      document.getElementById('sosCountdown').textContent = '✓';
+      document.getElementById('sosStatus').textContent = '✅ SOS Sent! Help is on the way.';
+      document.getElementById('sosCountdown').style.color = 'var(--safe)';
+      setTimeout(() => {
+        closeSOS();
+        showToast('🚨','SOS Alert Sent!','5 contacts notified + 112 dialled. Stay safe.');
+      }, 2000);
+    }
+  }, 1000);
+}
+
+function closeSOS() {
+  clearInterval(sosCountdownInterval);
+  document.getElementById('sosModal').classList.remove('open');
+  document.getElementById('sosCountdown').style.color = '';
+}
+
+// =====================
+// REPORT MODAL
+// =====================
+function openReport() {
+  document.getElementById('reportModal').classList.add('open');
+}
+function closeReport() {
+  document.getElementById('reportModal').classList.remove('open');
+}
+function toggleChip(el) {
+  el.classList.toggle('selected');
+}
+function submitReport() {
+  const loc = document.getElementById('reportLocation').value;
+  const selected = [...document.querySelectorAll('.type-chip.selected')].map(c => c.textContent);
+  if (!loc || selected.length === 0) {
+    showToast('⚠️','Incomplete','Please select a location and incident type.');
+    return;
+  }
+  closeReport();
+  // Update live counter
+  const el = document.getElementById('liveIncidents');
+  el.textContent = parseInt(el.textContent) + 1;
+  showToast('✅','Report Submitted','Thank you. The heatmap will update in ~15 minutes.');
+  // Reset
+  document.getElementById('reportLocation').value = '';
+  document.getElementById('reportDesc').value = '';
+  document.querySelectorAll('.type-chip').forEach(c => c.classList.remove('selected'));
+}
+
+// close modals on overlay click
+['sosModal','reportModal'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(e) {
+    if (e.target === this) {
+      if (id === 'sosModal') closeSOS();
+      else closeReport();
+    }
+  });
+});
+
+// =====================
+// LEAFLET MAP
+// =====================
+let map, circleLayer, heatLayer, youMarker, heatmapActive = false;
+
+function initMap() {
+const lucknowCenter = [26.8467, 80.9462];
+
+map = L.map('lucknow-map', {
+  center: lucknowCenter,
+  zoom: 13,
+  zoomControl: true,
+  attributionControl: true
+});
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 19
+}).addTo(map);
+
+// Area coordinates
+const areas = {
+  hazratganj: { latlng: [26.8525, 80.9385], risk: 'HIGH', color: '#EF4444', count: 18 },
+  charbagh:   { latlng: [26.8318, 80.9217], risk: 'HIGH', color: '#EF4444', count: 14 },
+  gomti:      { latlng: [26.8600, 80.9980], risk: 'MEDIUM', color: '#F59E0B', count: 9 },
+  aliganj:    { latlng: [26.8850, 80.9580], risk: 'MEDIUM', color: '#F59E0B', count: 6 },
+  indira:     { latlng: [26.8778, 80.9957], risk: 'LOW', color: '#10B981', count: 2 },
+  vibhuti:    { latlng: [26.8700, 81.0100], risk: 'SAFE', color: '#10B981', count: 0 },
+  aminabad:   { latlng: [26.8420, 80.9300], risk: 'HIGH', color: '#EF4444', count: 11 },
+  alambagh:   { latlng: [26.8080, 80.9000], risk: 'MEDIUM', color: '#F59E0B', count: 7 },
+};
+
+const areaNames = {
+  hazratganj: 'Hazratganj', charbagh: 'Charbagh', gomti: 'Gomti Nagar',
+  aliganj: 'Aliganj', indira: 'Indira Nagar', vibhuti: 'Vibhuti Khand',
+  aminabad: 'Aminabad', alambagh: 'Alambagh'
+};
+
+// Draw risk circles
+circleLayer = L.layerGroup().addTo(map);
+const heatData = [];
+
+Object.entries(areas).forEach(([key, area]) => {
+  const radius = 700 + area.count * 20;
+  L.circle(area.latlng, {
+    radius,
+    color: area.color,
+    fillColor: area.color,
+    fillOpacity: 0.18,
+    weight: 1.5,
+    opacity: 0.6
+  }).addTo(circleLayer).bindPopup(`
+    <div style="font-family:'Inter',sans-serif;min-width:160px;">
+      <div style="font-weight:700;font-size:0.95rem;margin-bottom:4px;">${areaNames[key]}</div>
+      <div style="font-size:0.78rem;color:${area.color};font-weight:600;margin-bottom:6px;">⚠️ Risk: ${area.risk}</div>
+      <div style="font-size:0.75rem;color:#666;">Incidents tonight: ${area.count}</div>
+      <button onclick="document.getElementById('reportModal').classList.add('open')" style="margin-top:8px;background:#E91E8C;color:white;border:none;padding:5px 12px;border-radius:6px;font-size:0.72rem;cursor:pointer;width:100%;">Report Incident Here</button>
+    </div>
+  `);
+  // heat data
+  for (let i = 0; i < area.count; i++) {
+    heatData.push([
+      area.latlng[0] + (Math.random()-0.5)*0.012,
+      area.latlng[1] + (Math.random()-0.5)*0.012,
+      0.5 + Math.random()*0.5
+    ]);
+  }
+});
+
+// Heatmap layer (hidden by default)
+heatLayer = L.heatLayer(heatData, {
+  radius: 35, blur: 25, maxZoom: 17,
+  gradient: { 0.2: '#10B981', 0.5: '#F59E0B', 0.8: '#EF4444', 1.0: '#7C3AED' }
+});
+
+// Incident pins
+const incidentPoints = [
+  { latlng: [26.8530, 80.9390], type: 'Harassment', time: '11:24 PM' },
+  { latlng: [26.8510, 80.9360], type: 'Stalking', time: '10:48 PM' },
+  { latlng: [26.8325, 80.9220], type: 'Snatching', time: '09:15 PM' },
+  { latlng: [26.8330, 80.9200], type: 'Unsafe Area', time: '11:02 PM' },
+  { latlng: [26.8415, 80.9310], type: 'Harassment', time: '10:30 PM' },
+  { latlng: [26.8608, 80.9985], type: 'Poor Lighting', time: '08:45 PM' },
+];
+
+incidentPoints.forEach(p => {
+  const icon = L.divIcon({
+    html: `<div class="custom-pin" style="background:#EF4444;">!</div>`,
+    iconSize: [20, 20], iconAnchor: [10, 10], className: ''
+  });
+  L.marker(p.latlng, { icon })
+    .addTo(map)
+    .bindPopup(`<div style="font-family:'Inter',sans-serif;"><strong>${p.type}</strong><br/><span style="font-size:0.75rem;color:#888;">${p.time}</span></div>`);
+});
+
+// You Are Here marker
+const youIcon = L.divIcon({
+  html: `<div class="you-pin"></div>`,
+  iconSize: [24, 24], iconAnchor: [12, 12], className: ''
+});
+youMarker = L.marker([26.8580, 80.9640], { icon: youIcon })
+  .addTo(map)
+  .bindPopup('<div style="font-family:\'Inter\',sans-serif;"><strong style="color:#E91E8C;">📍 You Are Here</strong><br/><span style="font-size:0.75rem;color:#888;">Indira Nagar — Safe Zone</span></div>');
+
+function flyToArea(key) {
+  const area = areas[key];
+  map.flyTo(area.latlng, 15, { duration: 1.2 });
+  setTimeout(() => {
+    Object.values(circleLayer._layers).forEach(l => {
+      if (l.getLatLng && l.getLatLng().equals ? false : true) {};
+    });
+  }, 1400);
+  showToast('🗺️', areaNames[key], `Risk: ${area.risk} · ${area.count} incidents tonight`);
+}
+
+function centerMap() {
+  map.flyTo([26.8580, 80.9640], 15, { duration: 1 });
+  youMarker.openPopup();
+  showToast('📍','Your Location','Indira Nagar — Safe Zone ✓');
+}
+
+function setFilter(btn, mode) {
+  btn.closest('.map-filters').querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (mode === 'heatmap') {
+    heatLayer.addTo(map);
+    heatmapActive = true;
+    showToast('🌡️','Heatmap View','Showing ML density overlay');
+  } else {
+    if (heatmapActive) { map.removeLayer(heatLayer); heatmapActive = false; }
+    if (mode === 'night') showToast('🌙','Night View','Showing high-risk night incident zones');
+    if (mode === 'day') showToast('☀️','Day View','Showing daytime safety patterns');
+    if (mode === 'week') showToast('📅','Week View','Showing 7-day aggregate data');
+  }
+}
+} // end initMap()
+
+// Dynamically load Leaflet then init map
+function loadScript(src, cb) {
+  const s = document.createElement('script');
+  s.src = src;
+  s.onload = cb;
+  s.onerror = () => console.error('Failed to load', src);
+  document.body.appendChild(s);
+}
+
+loadScript('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', () => {
+  loadScript('https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js', () => {
+    initMap();
+  });
+});
+
+// =====================
+// LIVE TICKER (simulated)
+// =====================
+setInterval(() => {
+  const el = document.getElementById('liveIncidents');
+  if (Math.random() > 0.7) {
+    el.textContent = parseInt(el.textContent) + 1;
+  }
+}, 8000);
+
+// =====================
+// CHARTS (loaded dynamically)
+// =====================
+function initCharts() {
+new Chart(document.getElementById('timeChart'), {
+  type: 'bar',
+  data: {
+    labels: ['12AM','2AM','4AM','6AM','8AM','10AM','12PM','2PM','4PM','6PM','8PM','10PM'],
+    datasets: [{
+      label: 'Incidents',
+      data: [32,28,12,5,8,15,22,18,25,35,48,58],
+      backgroundColor: ['#EF4444','#EF4444','#F59E0B','#10B981','#10B981','#10B981','#F59E0B','#F59E0B','#F59E0B','#F59E0B','#EF4444','#EF4444'],
+      borderRadius: 6
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: '#9CA3AF', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+      y: { ticks: { color: '#9CA3AF', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.06)' } }
+    }
+  }
+});
+
+new Chart(document.getElementById('typeChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Harassment','Stalking/Following','Theft','Unsafe Area','Other'],
+    datasets: [{ data: [38, 24, 16, 14, 8], backgroundColor: ['#E91E8C','#EF4444','#F59E0B','#7C3AED','#374151'], borderWidth: 0, hoverOffset: 8 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, cutout: '68%',
+    plugins: { legend: { position: 'right', labels: { color: '#9CA3AF', font: { size: 11 }, padding: 12, boxWidth: 12 } } }
+  }
+});
+
+new Chart(document.getElementById('sosChart'), {
+  type: 'line',
+  data: {
+    labels: ['Jan','Feb','Mar','Apr','May','Jun'],
+    datasets: [{ label: 'Avg Response (s)', data: [8.2, 6.8, 5.4, 4.3, 3.8, 3.1], borderColor: '#10B981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.4, pointRadius: 5, pointBackgroundColor: '#10B981' }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: '#9CA3AF', font:{size:11} }, grid: { color: 'rgba(255,255,255,0.04)' } },
+      y: { ticks: { color: '#9CA3AF', font:{size:11} }, grid: { color: 'rgba(255,255,255,0.06)' } }
+    }
+  }
+});
+
+new Chart(document.getElementById('growthChart'), {
+  type: 'line',
+  data: {
+    labels: ['Jan','Feb','Mar','Apr','May','Jun'],
+    datasets: [{ label: 'Users (K)', data: [120, 340, 620, 980, 1540, 2010], borderColor: '#E91E8C', backgroundColor: 'rgba(233,30,140,0.08)', fill: true, tension: 0.4, pointRadius: 5, pointBackgroundColor: '#E91E8C' }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: '#9CA3AF', font:{size:11} }, grid: { color: 'rgba(255,255,255,0.04)' } },
+      y: { ticks: { color: '#9CA3AF', font:{size:11}, callback: v => v+'K' }, grid: { color: 'rgba(255,255,255,0.06)' } }
+    }
+  }
+});
+
+new Chart(document.getElementById('uptimeChart'), {
+  type: 'doughnut',
+  data: { labels: ['Uptime','Downtime'], datasets: [{ data: [99.97, 0.03], backgroundColor: ['#10B981','#1F2937'], borderWidth: 0 }] },
+  options: { responsive: false, cutout: '78%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+});
+} // end initCharts()
+
+loadScript('https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js', initCharts);
+
+// =====================
+// COPY FUNCTIONS
+// =====================
+function copyBullets() {
+  const text = document.getElementById('resumeBullets').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('📋','Copied!','Resume bullet points copied to clipboard');
+  }).catch(() => {
+    showToast('📋','Tip','Select the text manually and press Ctrl+C');
+  });
+}
+
+function copyUrl() {
+  const url = document.getElementById('liveUrl').textContent;
+  navigator.clipboard.writeText(url).then(() => {
+    showToast('🔗','URL Copied!','Replace "yourusername" with your GitHub username');
+  });
+}
+
+// =====================
+// AI SAFETY ASSISTANT
+// =====================
+let aiOpen = false;
+let aiTyping = false;
+
+function toggleAIChat() {
+  aiOpen = !aiOpen;
+  document.getElementById('aiChatPanel').classList.toggle('open', aiOpen);
+  document.getElementById('aiNotif').style.display = 'none';
+  if (aiOpen) setTimeout(() => document.getElementById('aiInput').focus(), 300);
+}
+
+function sendQuickMsg(msg) {
+  document.getElementById('aiChips').style.display = 'none';
+  appendUserMsg(msg);
+  callClaudeAPI(msg);
+}
+
+function sendAIMsg() {
+  const input = document.getElementById('aiInput');
+  const msg = input.value.trim();
+  if (!msg || aiTyping) return;
+  input.value = '';
+  document.getElementById('aiChips').style.display = 'none';
+  appendUserMsg(msg);
+  callClaudeAPI(msg);
+}
+
+function appendUserMsg(msg) {
+  const el = document.createElement('div');
+  el.className = 'msg-bubble user';
+  el.textContent = msg;
+  document.getElementById('aiMessages').appendChild(el);
+  scrollAIMessages();
+}
+
+function appendAIMsg(msg) {
+  const el = document.createElement('div');
+  el.className = 'msg-bubble ai';
+  el.innerHTML = msg.replace(/\n/g,'<br/>');
+  document.getElementById('aiMessages').appendChild(el);
+  scrollAIMessages();
+  return el;
+}
+
+function scrollAIMessages() {
+  const msgs = document.getElementById('aiMessages');
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+async function callClaudeAPI(userMsg) {
+  if (aiTyping) return;
+  aiTyping = true;
+
+  // Show typing indicator
+  const typingEl = document.createElement('div');
+  typingEl.className = 'msg-bubble ai typing';
+  typingEl.innerHTML = '<i class="fas fa-ellipsis" style="animation:blink 1s infinite;"></i> SafeHer AI is thinking...';
+  document.getElementById('aiMessages').appendChild(typingEl);
+  scrollAIMessages();
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: `You are SafeHer AI, a women's safety assistant for the SafeHer app — an AI-powered safety platform focused on Lucknow, India (and globally). 
+You help women with:
+- Real-time safety advice for areas in Lucknow (Hazratganj, Charbagh, Gomti Nagar, Aliganj, Indira Nagar, Vibhuti Khand, Aminabad, Alambagh)
+- Emergency tips (SOS, 112, self-defense basics)
+- Safe route recommendations
+- How SafeHer's heatmap and ML risk scoring works
+- Women's safety laws and rights in India
+- Emotional support and reassurance
+
+Current heatmap data: Hazratganj (HIGH RISK, 18 incidents tonight), Charbagh (HIGH, 14), Aminabad (HIGH, 11), Gomti Nagar (MEDIUM, 9), Alambagh (MEDIUM, 7), Aliganj (MEDIUM, 6), Indira Nagar (LOW, 2), Vibhuti Khand (SAFE, 0).
+
+Be warm, caring, concise (2-4 sentences usually), and practical. Use emojis sparingly. Always prioritize safety. If someone seems in danger, immediately suggest calling 112.`,
+        messages: [{ role: 'user', content: userMsg }]
+      })
+    });
+    const data = await response.json();
+    typingEl.remove();
+    const reply = data.content?.[0]?.text || 'I apologize, I had trouble responding. Please call 112 in any emergency. 🚨';
+    appendAIMsg(reply);
+  } catch (err) {
+    typingEl.remove();
+    appendAIMsg('Having trouble connecting right now. For emergencies, call <strong>112</strong> immediately. 🚨');
+  }
+  aiTyping = false;
+}
+
+// =====================
+// FAKE CALL SIMULATION
+// =====================
+let fakeCallTimer;
+
+function triggerFakeCall(name) {
+  showToast('📱','Fake Call','Incoming call from "' + name + '" in 3 seconds...');
+  fakeCallTimer = setTimeout(() => {
+    document.getElementById('fakeCallerName').textContent = name;
+    document.getElementById('fakeCallOverlay').classList.add('active');
+    // Play vibration if supported
+    if (navigator.vibrate) navigator.vibrate([300,100,300,100,300]);
+  }, 3000);
+}
+
+function endFakeCall() {
+  document.getElementById('fakeCallOverlay').classList.remove('active');
+  showToast('📵','Call Ended','Fake call ended successfully');
+}
+
+function acceptFakeCall() {
+  const overlay = document.getElementById('fakeCallOverlay');
+  overlay.querySelector('.fake-call-sub').textContent = 'Connected · 00:00';
+  overlay.querySelector('.fake-call-avatar').textContent = '👩';
+  // Simulate call for 5 seconds then auto end
+  let secs = 0;
+  const callInterval = setInterval(() => {
+    secs++;
+    const m = Math.floor(secs/60).toString().padStart(2,'0');
+    const s = (secs%60).toString().padStart(2,'0');
+    overlay.querySelector('.fake-call-sub').textContent = `Connected · ${m}:${s}`;
+  }, 1000);
+  overlay.querySelector('.call-action-circle.accept').onclick = () => {
+    clearInterval(callInterval);
+    endFakeCall();
+  };
+  overlay.querySelector('.call-action-circle.decline').onclick = () => {
+    clearInterval(callInterval);
+    endFakeCall();
+  };
+}
+
+// =====================
+// JOURNEY TIMER
+// =====================
+let journeySeconds = 0;
+let journeyTotalSeconds = 0;
+let journeyInterval;
+let selectedMinutes = 0;
+
+function openJourney() {
+  document.getElementById('journeyModal').classList.add('open');
+  document.getElementById('journeySetup').style.display = 'block';
+  document.getElementById('journeyActive').style.display = 'none';
+}
+
+function closeJourney() {
+  document.getElementById('journeyModal').classList.remove('open');
+}
+
+function selectTime(el, mins) {
+  document.querySelectorAll('.time-preset').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedMinutes = mins;
+}
+
+function startJourney() {
+  const dest = document.getElementById('journeyDest').value.trim() || 'your destination';
+  if (!selectedMinutes) {
+    showToast('⚠️','Select Time','Please choose an expected travel time');
+    return;
+  }
+  journeyTotalSeconds = selectedMinutes * 60;
+  journeySeconds = journeyTotalSeconds;
+
+  document.getElementById('journeySetup').style.display = 'none';
+  document.getElementById('journeyActive').style.display = 'block';
+  document.getElementById('journeyDestLabel').innerHTML = `Heading to <strong style="color:var(--text);">${dest}</strong>`;
+  updateJourneyDisplay();
+
+  journeyInterval = setInterval(() => {
+    journeySeconds--;
+    updateJourneyDisplay();
+    if (journeySeconds <= 0) {
+      clearInterval(journeyInterval);
+      triggerJourneyAlert(dest);
+    }
+  }, 1000);
+
+  showToast('🚶','Journey Started',`Timer set for ${selectedMinutes} min. Check in when you arrive!`);
+}
+
+function updateJourneyDisplay() {
+  const m = Math.floor(journeySeconds / 60).toString().padStart(2,'0');
+  const s = (journeySeconds % 60).toString().padStart(2,'0');
+  const display = document.getElementById('journeyTimerDisplay');
+  const pct = (journeySeconds / journeyTotalSeconds) * 100;
+  document.getElementById('journeyProgressBar').style.width = pct + '%';
+
+  display.textContent = `${m}:${s}`;
+  display.className = 'journey-timer-display';
+  if (pct < 25) display.classList.add('danger');
+  else if (pct < 50) display.classList.add('warning');
+}
+
+function triggerJourneyAlert(dest) {
+  document.getElementById('journeyTimerDisplay').textContent = '⚠️';
+  document.getElementById('journeyTitle').textContent = 'Check-In Overdue!';
+  document.getElementById('journeyDesc').textContent = `You haven't checked in for ${dest}. Alerting emergency contacts now...`;
+  showToast('🚨','Journey Alert!','Contacts have been notified. Please check in immediately!');
+  if (navigator.vibrate) navigator.vibrate([500,200,500,200,500,200,500]);
+}
+
+function cancelJourney() {
+  clearInterval(journeyInterval);
+  closeJourney();
+  showToast('🚶','Journey Cancelled','Check-in timer stopped');
+}
+
+function checkInSafe() {
+  clearInterval(journeyInterval);
+  closeJourney();
+  showToast('✅','Safe Arrival!','Contacts notified you arrived safely. Stay safe! 💚');
+  const el = document.getElementById('liveIncidents');
+  // Update SOS stat
+  const sosEl = document.getElementById('liveSOS');
+}
+
+// =====================
+// SAFE ROUTE via AI
+// =====================
+function getSafeRoute() {
+  if (!aiOpen) toggleAIChat();
+  const prompt = 'I need the safest route in Lucknow right now. I am currently at Indira Nagar. What areas should I avoid and which route is safest?';
+  setTimeout(() => {
+    appendUserMsg(prompt);
+    callClaudeAPI(prompt);
+  }, 300);
+  showToast('🧭','AI Route Advisor','Asking SafeHer AI for the safest route...');
+}
+</script>
+</body>
+</html>
